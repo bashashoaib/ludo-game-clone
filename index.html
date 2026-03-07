@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ludo Game Clone</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <div class="title-wrap">
+        <p class="eyebrow">Browser Game</p>
+        <h1>Ludo Clone</h1>
+        <p class="intro">
+          Play as Red against three computer players. Roll the dice, click your token,
+          and race all four pieces home.
+        </p>
+      </div>
+
+      <div class="status-card">
+        <p class="label">Current Turn</p>
+        <p id="turnLabel" class="turn-name">Red</p>
+      </div>
+
+      <div class="dice-card">
+        <p class="label">Dice</p>
+        <div id="diceFace" class="dice-face">-</div>
+        <button id="rollButton" class="primary-button">Roll Dice</button>
+      </div>
+
+      <div class="help-card">
+        <p class="label">How To Play</p>
+        <ul>
+          <li>You need a <strong>6</strong> to bring a token out.</li>
+          <li>If you roll a <strong>6</strong>, you get another turn.</li>
+          <li>Landing on an enemy sends it back to base unless the square is safe.</li>
+          <li>You must roll the exact number to reach the center.</li>
+        </ul>
+      </div>
+
+      <div id="messageBox" class="message-box">Press Roll Dice to start.</div>
+
+      <button id="restartButton" class="secondary-button">Restart Game</button>
+    </section>
+
+    <section class="board-wrap">
+      <canvas id="boardCanvas" width="720" height="720" aria-label="Ludo game board"></canvas>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
