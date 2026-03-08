@@ -37,6 +37,8 @@ const MODES = {
   duel: ["red", "yellow"],
   classic: ["red", "green", "yellow", "blue"],
 };
+const TRACKING_NAMESPACE = "bashashoaib_ludo_game";
+const TRACKING_TIMEZONE = "Asia/Kolkata";
 
 const COLORS = {
   red: "#d84d4d",
@@ -123,6 +125,57 @@ function pushHistory(text) {
   state.history.unshift(text);
   state.history = state.history.slice(0, 8);
   renderHistory();
+}
+
+function getTrackingStamp() {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TRACKING_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(new Date()).reduce((accumulator, part) => {
+    if (part.type !== "literal") accumulator[part.type] = part.value;
+    return accumulator;
+  }, {});
+  const dayKey = `${parts.year}${parts.month}${parts.day}`;
+  const hourKey = `${dayKey}${parts.hour}`;
+  return {
+    dayKey,
+    hourKey,
+    label: `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:00 ${TRACKING_TIMEZONE}`,
+  };
+}
+
+function hitTrackingKey(key) {
+  fetch(`https://countapi.mileshilliard.com/api/v1/hit/${TRACKING_NAMESPACE}_${key}`, {
+    method: "GET",
+    mode: "cors",
+    cache: "no-store",
+  }).catch(() => {});
+}
+
+function trackBackgroundVisit() {
+  const stamp = getTrackingStamp();
+  try {
+    const lastHour = localStorage.getItem("royalLudoTrackedHour");
+    if (lastHour !== stamp.hourKey) {
+      localStorage.setItem("royalLudoTrackedHour", stamp.hourKey);
+      hitTrackingKey(`hour_${stamp.hourKey}`);
+    }
+
+    const lastDay = localStorage.getItem("royalLudoTrackedDay");
+    if (lastDay !== stamp.dayKey) {
+      localStorage.setItem("royalLudoTrackedDay", stamp.dayKey);
+      hitTrackingKey(`day_${stamp.dayKey}`);
+    }
+  } catch (error) {
+    // Ignore storage errors and still attempt total visit tracking.
+  }
+
+  hitTrackingKey("total");
 }
 
 function ensureAudio() {
@@ -1052,3 +1105,4 @@ canvas.addEventListener("mouseleave", () => {
 updateModeButtons();
 resetGame();
 startScreen.classList.remove("hidden");
+trackBackgroundVisit();
