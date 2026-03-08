@@ -35,7 +35,6 @@ const CENTER = { x: 7, y: 7 };
 const SAFE_GLOBAL_INDEXES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 const MODES = {
   duel: ["red", "yellow"],
-  classic: ["red", "green", "yellow", "blue"],
 };
 const TRACKING_NAMESPACE = "bashashoaib_ludo_game";
 const TRACKING_TIMEZONE = "Asia/Kolkata";
@@ -358,7 +357,7 @@ function updateModeButtons() {
   modeButtons.forEach((button) => {
     button.classList.toggle("selected", button.dataset.mode === state.mode);
   });
-  startButton.disabled = !state.mode;
+  startButton.disabled = false;
 }
 
 function setDiceDisplay(value) {
@@ -383,13 +382,8 @@ function resetGame() {
     drawX: slot[0],
     drawY: slot[1],
   })));
-  if (state.mode === "duel") {
-    setMessage(state.started ? "Boss, press Roll Dice to start your Red vs Yellow match." : "Boss, choose a mode and press Play.");
-    setTurnHint(state.started ? "You are Red. Yellow is the AI." : "The game will start after you press Play.");
-  } else {
-    setMessage(state.started ? "Boss, press Roll Dice to start your full 4-player match." : "Boss, choose a mode and press Play.");
-    setTurnHint(state.started ? "You are Red. Green, Yellow, and Blue are AI players." : "The game will start after you press Play.");
-  }
+  setMessage(state.started ? "Boss, press Roll Dice to start your Red vs Yellow match." : "Boss, press Play to start your Red vs Yellow match.");
+  setTurnHint(state.started ? "You are Red. Yellow is the AI." : "The game will start after you press Play.");
   setDiceDisplay(0);
   beginTurnSnapshot();
   syncSeats();
@@ -724,9 +718,7 @@ function buildConfetti() {
 function showWinnerOverlay() {
   const firstPlace = state.placements[0] ? getPlayer(state.placements[0].playerId) : getPlayer("red");
   winnerTitle.textContent = firstPlace.isHuman ? "Boss wins the match" : `${firstPlace.name} AI wins the match`;
-  winnerSubtitle.textContent = state.mode === "duel"
-    ? "Final ranking for the 2-player match."
-    : "Final ranking for the full 4-player match.";
+  winnerSubtitle.textContent = "Final ranking for the 2-player match.";
   winnerRanking.innerHTML = "";
   state.placements.forEach((entry) => {
     const player = getPlayer(entry.playerId);
@@ -1051,11 +1043,11 @@ function lightenColor(hex, amount) {
 
 modeButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    state.mode = button.dataset.mode;
+    state.mode = "duel";
     updateModeButtons();
     state.started = false;
     resetGame();
-    setMessage(`Boss, ${state.mode === "duel" ? "Red vs Yellow AI" : "Red vs 3 AI players"} is selected.`);
+    setMessage("Boss, Red vs Yellow AI is selected.");
     setTurnHint("Press Play Now to start the game.");
   });
 });

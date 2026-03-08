@@ -160,10 +160,13 @@ button:disabled {
 
 .board-wrap {
   position: relative;
+  display: flex;
+  justify-content: center;
 }
 
 .board-frame {
   position: relative;
+  width: min(100%, calc(100vh - 220px), 940px);
   padding: 26px;
   border-radius: 34px;
   background:
@@ -185,7 +188,9 @@ button:disabled {
 
 #boardCanvas {
   width: 100%;
-  max-width: 780px;
+  max-width: min(780px, calc(100vw - 110px), calc(100vh - 290px));
+  aspect-ratio: 1 / 1;
+  height: auto;
   display: block;
   margin: 0 auto;
   border-radius: 24px;
@@ -510,6 +515,10 @@ button:disabled {
 }
 
 @media (max-width: 980px) {
+  .mobile-shell {
+    width: min(100%, 980px);
+  }
+
   .top-hud {
     grid-template-columns: 1fr;
   }
@@ -527,6 +536,14 @@ button:disabled {
     width: min(100%, 300px);
     margin: 0 auto 16px;
   }
+
+  .board-frame {
+    width: min(100%, calc(100vh - 140px), 820px);
+  }
+
+  #boardCanvas {
+    max-width: min(780px, calc(100vw - 70px), calc(100vh - 260px));
+  }
 }
 
 @media (max-width: 720px) {
@@ -535,8 +552,13 @@ button:disabled {
   }
 
   .board-frame {
+    width: min(100%, calc(100vh - 110px));
     padding: 18px 12px 22px;
     border-radius: 24px;
+  }
+
+  #boardCanvas {
+    max-width: min(calc(100vw - 34px), calc(100vh - 210px));
   }
 
   .seat {
@@ -553,5 +575,36 @@ button:disabled {
   .winner-actions,
   .action-pills {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 540px) {
+  .brand-pill,
+  .turn-pill,
+  .message-panel,
+  .stats-card,
+  .overlay-card {
+    border-radius: 20px;
+  }
+
+  .board-frame {
+    width: min(100%, calc(100vh - 90px));
+    padding: 14px 8px 18px;
+  }
+
+  #boardCanvas {
+    max-width: min(calc(100vw - 24px), calc(100vh - 190px));
+    border-radius: 18px;
+  }
+
+  .seat {
+    min-width: 68px;
+    padding: 7px 10px;
+    font-size: 0.8rem;
+  }
+
+  .seat-top,
+  .seat-bottom {
+    left: 50%;
   }
 }
