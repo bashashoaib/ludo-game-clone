@@ -7,32 +7,39 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="hero-panel">
-      <div class="hero-copy">
-        <p class="eyebrow">Classic Board Race</p>
-        <h1>Royal Ludo</h1>
-        <p class="intro">
-          A stronger browser version of Ludo with a richer board, smoother token movement,
-          real dice pips, and smarter game feedback. You play as Red.
-        </p>
+  <main class="mobile-shell">
+    <section class="game-stage">
+      <div class="top-hud">
+        <div class="brand-pill">
+          <span class="brand-small">Classic Race</span>
+          <strong>Royal Ludo</strong>
+        </div>
+
+        <div class="turn-pill">
+          <span id="turnDot" class="turn-dot"></span>
+          <div>
+            <p class="hud-label">Turn</p>
+            <strong id="turnLabel">Red</strong>
+          </div>
+        </div>
+
+        <div class="action-pills">
+          <button id="soundToggle" class="hud-button secondary-button" type="button">Sound On</button>
+          <button id="restartButton" class="hud-button secondary-button" type="button">New Match</button>
+        </div>
       </div>
 
-      <div class="control-grid">
-        <article class="info-card turn-card">
-          <p class="card-label">Current Turn</p>
-          <div class="turn-line">
-            <span id="turnDot" class="turn-dot"></span>
-            <span id="turnLabel" class="turn-name">Red</span>
-          </div>
-          <p id="turnHint" class="card-note">Roll the dice to begin.</p>
-        </article>
+      <div class="board-wrap">
+        <div class="board-frame">
+          <div id="seatGreen" class="seat seat-top seat-green seat-idle">Idle</div>
+          <div id="seatYellow" class="seat seat-right seat-yellow">Yellow AI</div>
+          <div id="seatBlue" class="seat seat-bottom seat-blue seat-idle">Idle</div>
+          <div id="seatRed" class="seat seat-left seat-red">Boss</div>
 
-        <article class="info-card dice-card">
-          <div class="dice-head">
-            <div>
-              <p class="card-label">Dice</p>
-              <p id="diceValueLabel" class="dice-number">0</p>
+          <div class="floating-dice-panel">
+            <div class="dice-copy">
+              <p class="hud-label">Dice</p>
+              <strong id="diceValueLabel">0</strong>
             </div>
             <div id="diceFace" class="dice-face" aria-label="Dice face">
               <span class="pip"></span>
@@ -45,57 +52,74 @@
               <span class="pip"></span>
               <span class="pip"></span>
             </div>
+            <button id="rollButton" class="primary-button roll-button" type="button">Roll Dice</button>
           </div>
-          <div class="button-row">
-            <button id="rollButton" class="primary-button">Roll Dice</button>
-            <button id="restartButton" class="secondary-button">New Match</button>
+
+          <canvas id="boardCanvas" width="780" height="780" aria-label="Ludo game board"></canvas>
+        </div>
+      </div>
+
+      <section class="bottom-panel">
+        <div class="message-panel">
+          <p class="hud-label">Match Message</p>
+          <p id="messageBox" class="message-box">Boss, choose a mode and press Play.</p>
+          <p id="turnHint" class="turn-hint">The game will start after you press Play.</p>
+        </div>
+
+        <div class="stats-strip">
+          <div class="stats-card">
+            <p class="hud-label">Players</p>
+            <div id="playerStats" class="player-stats"></div>
           </div>
-        </article>
-      </div>
-
-      <article class="info-card players-card">
-        <div class="section-head">
-          <p class="card-label">Players</p>
-          <p class="section-note">Home count updates live</p>
+          <div class="stats-card compact-card">
+            <p class="hud-label">Ranking</p>
+            <div id="rankingList" class="ranking-list"></div>
+          </div>
+          <div class="stats-card compact-card">
+            <p class="hud-label">Recent Moves</p>
+            <div id="historyList" class="history-list"></div>
+          </div>
         </div>
-        <div id="playerStats" class="player-stats"></div>
-      </article>
-
-      <article class="info-card ranking-card">
-        <div class="section-head">
-          <p class="card-label">Ranking</p>
-          <p class="section-note">Live finishing order</p>
-        </div>
-        <div id="rankingList" class="ranking-list"></div>
-      </article>
-
-      <article class="info-card message-card">
-        <div class="section-head">
-          <p class="card-label">Match Feed</p>
-          <p class="section-note">Live game guidance</p>
-        </div>
-        <p id="messageBox" class="message-box">Boss, press Roll Dice to start.</p>
-        <div id="historyList" class="history-list"></div>
-      </article>
-    </section>
-
-    <section class="board-panel">
-      <div class="board-header">
-        <div>
-          <p class="eyebrow">Classic Match</p>
-          <h2>Mobile Ludo Style</h2>
-        </div>
-        <p class="board-note">Click a highlighted Red token when it is your turn.</p>
-      </div>
-      <div class="canvas-frame">
-        <div id="seatGreen" class="seat seat-top seat-green seat-idle">Idle</div>
-        <div id="seatYellow" class="seat seat-right seat-yellow">Yellow AI</div>
-        <div id="seatBlue" class="seat seat-bottom seat-blue seat-idle">Idle</div>
-        <div class="seat seat-left seat-red">Boss</div>
-        <canvas id="boardCanvas" width="780" height="780" aria-label="Ludo game board"></canvas>
-      </div>
+      </section>
     </section>
   </main>
+
+  <div id="startScreen" class="overlay-screen">
+    <div class="overlay-card start-card">
+      <p class="overlay-tag">Mobile Ludo Mode</p>
+      <h1>Play A Real Board Match</h1>
+      <p class="overlay-copy">
+        Boss, choose the match type, then press Play. You are always the Red player.
+      </p>
+
+      <div class="mode-grid">
+        <button class="mode-button" data-mode="duel" type="button">
+          <strong>Human vs 1 AI</strong>
+          <span>Fast match with Red vs Yellow AI</span>
+        </button>
+        <button class="mode-button" data-mode="classic" type="button">
+          <strong>Human vs 3 AI</strong>
+          <span>Full 4-player board with Red, Green, Yellow, and Blue</span>
+        </button>
+      </div>
+
+      <button id="startButton" class="play-button" type="button" disabled>Play Now</button>
+    </div>
+  </div>
+
+  <div id="winnerScreen" class="overlay-screen hidden">
+    <div class="overlay-card winner-card">
+      <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+      <p class="overlay-tag">Match Complete</p>
+      <h2 id="winnerTitle">Boss wins</h2>
+      <p id="winnerSubtitle" class="overlay-copy">Final ranking will appear here.</p>
+      <div id="winnerRanking" class="winner-ranking"></div>
+      <div class="winner-actions">
+        <button id="playAgainButton" class="play-button" type="button">Play Again</button>
+        <button id="closeWinnerButton" class="hud-button secondary-button" type="button">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

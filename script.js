@@ -2,6 +2,7 @@ const canvas = document.getElementById("boardCanvas");
 const ctx = canvas.getContext("2d");
 const rollButton = document.getElementById("rollButton");
 const restartButton = document.getElementById("restartButton");
+const soundToggle = document.getElementById("soundToggle");
 const messageBox = document.getElementById("messageBox");
 const turnLabel = document.getElementById("turnLabel");
 const turnDot = document.getElementById("turnDot");
@@ -11,9 +12,20 @@ const diceValueLabel = document.getElementById("diceValueLabel");
 const playerStats = document.getElementById("playerStats");
 const rankingList = document.getElementById("rankingList");
 const historyList = document.getElementById("historyList");
+const seatRed = document.getElementById("seatRed");
 const seatGreen = document.getElementById("seatGreen");
 const seatYellow = document.getElementById("seatYellow");
 const seatBlue = document.getElementById("seatBlue");
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+const winnerScreen = document.getElementById("winnerScreen");
+const winnerTitle = document.getElementById("winnerTitle");
+const winnerSubtitle = document.getElementById("winnerSubtitle");
+const winnerRanking = document.getElementById("winnerRanking");
+const playAgainButton = document.getElementById("playAgainButton");
+const closeWinnerButton = document.getElementById("closeWinnerButton");
+const confettiLayer = document.getElementById("confettiLayer");
 const pips = Array.from(diceFace.querySelectorAll(".pip"));
 
 const BOARD_SIZE = 780;
@@ -21,6 +33,10 @@ const GRID_SIZE = 15;
 const CELL = BOARD_SIZE / GRID_SIZE;
 const CENTER = { x: 7, y: 7 };
 const SAFE_GLOBAL_INDEXES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+const MODES = {
+  duel: ["red", "yellow"],
+  classic: ["red", "green", "yellow", "blue"],
+};
 
 const COLORS = {
   red: "#d84d4d",
@@ -50,8 +66,6 @@ const PLAYERS = [
   { id: "blue", name: "Blue", startIndex: 39, homeLane: laneFromBottom(), base: tokenBaseSlots("blue"), isHuman: false },
 ];
 
-const ACTIVE_PLAYER_IDS = ["red", "yellow"];
-
 const state = {
   currentPlayerIndex: 0,
   diceValue: null,
@@ -63,6 +77,11 @@ const state = {
   turnStartSnapshot: [],
   placements: [],
   history: [],
+  mode: "duel",
+  started: false,
+  soundEnabled: true,
+  audioContext: null,
+  confettiTimer: null,
 };
 
 function laneFromLeft() { return [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]]; }
@@ -80,7 +99,8 @@ function tokenBaseSlots(playerId) {
 }
 function currentPlayer() { return PLAYERS[state.currentPlayerIndex]; }
 function getPlayer(playerId) { return PLAYERS.find((player) => player.id === playerId); }
-function getActivePlayers() { return PLAYERS.filter((player) => ACTIVE_PLAYER_IDS.includes(player.id)); }
+function getActivePlayerIds() { return MODES[state.mode] || MODES.duel; }
+function getActivePlayers() { return PLAYERS.filter((player) => getActivePlayerIds().includes(player.id)); }
 function getTokensForPlayer(playerId) { return state.tokens.filter((token) => token.playerId === playerId); }
 function setMessage(text) { messageBox.textContent = text; }
 function setTurnHint(text) { turnHint.textContent = text; }
@@ -103,6 +123,62 @@ function pushHistory(text) {
   state.history.unshift(text);
   state.history = state.history.slice(0, 8);
   renderHistory();
+}
+
+function ensureAudio() {
+  if (!state.soundEnabled) return null;
+  if (!state.audioContext) {
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtor) return null;
+    state.audioContext = new AudioCtor();
+  }
+  if (state.audioContext.state === "suspended") {
+    state.audioContext.resume();
+  }
+  return state.audioContext;
+}
+
+function playTone(frequency, duration, type = "sine", gainValue = 0.035, delay = 0) {
+  const audio = ensureAudio();
+  if (!audio) return;
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  const startAt = audio.currentTime + delay;
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+  gain.gain.setValueAtTime(0.0001, startAt);
+  gain.gain.exponentialRampToValueAtTime(gainValue, startAt + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  oscillator.connect(gain);
+  gain.connect(audio.destination);
+  oscillator.start(startAt);
+  oscillator.stop(startAt + duration + 0.02);
+}
+
+function playSound(name) {
+  if (!state.soundEnabled) return;
+  if (name === "roll") {
+    playTone(340, 0.08, "square", 0.03, 0);
+    playTone(440, 0.08, "square", 0.03, 0.08);
+    playTone(520, 0.08, "square", 0.03, 0.16);
+    return;
+  }
+  if (name === "move") {
+    playTone(420, 0.08, "triangle", 0.03, 0);
+    playTone(520, 0.1, "triangle", 0.028, 0.08);
+    return;
+  }
+  if (name === "capture") {
+    playTone(220, 0.08, "sawtooth", 0.04, 0);
+    playTone(165, 0.1, "sawtooth", 0.04, 0.08);
+    playTone(310, 0.12, "square", 0.035, 0.18);
+    return;
+  }
+  if (name === "win") {
+    playTone(392, 0.12, "triangle", 0.04, 0);
+    playTone(523, 0.12, "triangle", 0.04, 0.12);
+    playTone(659, 0.18, "triangle", 0.045, 0.24);
+  }
 }
 
 function getTokenCoords(token) {
@@ -188,15 +264,48 @@ function renderHistory() {
 
 function updateTurnText() {
   const player = currentPlayer();
-  turnLabel.textContent = player.name;
-  turnLabel.style.color = COLORS[player.id];
+  turnLabel.textContent = player.isHuman ? "Boss" : `${player.name} AI`;
+  turnLabel.style.color = "#ffffff";
   turnDot.style.background = COLORS[player.id];
   turnDot.style.boxShadow = `0 0 0 5px ${hexToRgba(COLORS[player.id], 0.18)}`;
   renderPlayerStats();
 }
 
 function updateButtons() {
-  rollButton.disabled = !(currentPlayer().isHuman && !state.animating && !state.gameOver && state.diceValue === null);
+  rollButton.disabled = !(state.started && currentPlayer().isHuman && !state.animating && !state.gameOver && state.diceValue === null);
+}
+
+function syncSeats() {
+  const activeIds = getActivePlayerIds();
+  const seatMap = {
+    red: seatRed,
+    green: seatGreen,
+    yellow: seatYellow,
+    blue: seatBlue,
+  };
+  Object.entries(seatMap).forEach(([playerId, element]) => {
+    if (!element) return;
+    if (playerId === "red") {
+      element.textContent = "Boss";
+      element.classList.remove("seat-idle");
+      return;
+    }
+    const player = getPlayer(playerId);
+    if (activeIds.includes(playerId)) {
+      element.textContent = `${player.name} AI`;
+      element.classList.remove("seat-idle");
+    } else {
+      element.textContent = "Idle";
+      element.classList.add("seat-idle");
+    }
+  });
+}
+
+function updateModeButtons() {
+  modeButtons.forEach((button) => {
+    button.classList.toggle("selected", button.dataset.mode === state.mode);
+  });
+  startButton.disabled = !state.mode;
 }
 
 function setDiceDisplay(value) {
@@ -221,17 +330,20 @@ function resetGame() {
     drawX: slot[0],
     drawY: slot[1],
   })));
-  setMessage("Boss, press Roll Dice to start your Human vs 1 AI match.");
-  setTurnHint("Red vs Yellow AI.");
+  if (state.mode === "duel") {
+    setMessage(state.started ? "Boss, press Roll Dice to start your Red vs Yellow match." : "Boss, choose a mode and press Play.");
+    setTurnHint(state.started ? "You are Red. Yellow is the AI." : "The game will start after you press Play.");
+  } else {
+    setMessage(state.started ? "Boss, press Roll Dice to start your full 4-player match." : "Boss, choose a mode and press Play.");
+    setTurnHint(state.started ? "You are Red. Green, Yellow, and Blue are AI players." : "The game will start after you press Play.");
+  }
   setDiceDisplay(0);
   beginTurnSnapshot();
+  syncSeats();
   updateTurnText();
   updateButtons();
   renderRanking();
   renderHistory();
-  if (seatGreen) seatGreen.textContent = "Idle";
-  if (seatYellow) seatYellow.textContent = "Yellow AI";
-  if (seatBlue) seatBlue.textContent = "Idle";
   draw();
 }
 
@@ -278,6 +390,7 @@ function findOpponentsOnSameSquare(movedToken) {
   return state.tokens.filter((token) => token.playerId !== movedToken.playerId && tokenGlobalIndex(token) === globalIndex);
 }
 function animateDice(finalValue, onDone) {
+  playSound("roll");
   diceFace.classList.add("rolling");
   let ticks = 0;
   const interval = window.setInterval(() => {
@@ -293,7 +406,7 @@ function animateDice(finalValue, onDone) {
 }
 
 function rollDice() {
-  if (state.animating || state.diceValue !== null || state.gameOver) return;
+  if (!state.started || state.animating || state.diceValue !== null || state.gameOver) return;
   const value = Math.floor(Math.random() * 6) + 1;
   state.diceValue = value;
   setMessage(`${currentPlayer().name} is rolling the dice.`);
@@ -357,7 +470,7 @@ function nextPlayer() {
   do {
     nextIndex = (nextIndex + 1) % PLAYERS.length;
     attempts += 1;
-  } while (attempts <= PLAYERS.length && (!ACTIVE_PLAYER_IDS.includes(PLAYERS[nextIndex].id) || playerHasPlaced(PLAYERS[nextIndex].id)));
+  } while (attempts <= PLAYERS.length && (!getActivePlayerIds().includes(PLAYERS[nextIndex].id) || playerHasPlaced(PLAYERS[nextIndex].id)));
 
   state.currentPlayerIndex = nextIndex;
   state.diceValue = null;
@@ -454,11 +567,13 @@ function moveToken(token) {
   setTurnHint("Animating move.");
   updateButtons();
   animateTokenMovement(token, newStatus, () => {
+    playSound("move");
     let extraTurn = diceValue === 6;
     const captured = !isSafeSquare(token) ? findOpponentsOnSameSquare(token) : [];
     if (captured.length > 0) {
       captured.forEach(sendTokenToBase);
       extraTurn = true;
+      playSound("capture");
       setMessage(`${player.name} captured ${captured.length} token${captured.length > 1 ? "s" : ""}.`);
       setTurnHint("Capture gives an extra turn.");
       pushHistory(`${player.name} captured ${captured.length} token${captured.length > 1 ? "s" : ""}.`);
@@ -496,6 +611,7 @@ function moveToken(token) {
         pushHistory(`${player.name} completed the match ranking.`);
         setMessage(`${player.name} secured place ${state.placements.length === 1 ? "1" : state.placements.find((entry) => entry.playerId === player.id).place}. Match ranking is complete.`);
         setTurnHint(player.isHuman ? "Boss finished in the rankings." : "All placements are decided.");
+        showWinnerOverlay();
         return;
       }
 
@@ -524,7 +640,7 @@ function chooseAiToken(moves) {
 }
 
 function playAiTurn() {
-  if (state.gameOver || state.animating || currentPlayer().isHuman) return;
+  if (!state.started || state.gameOver || state.animating || currentPlayer().isHuman) return;
   if (state.diceValue === null) {
     rollDice();
     return;
@@ -532,6 +648,49 @@ function playAiTurn() {
   const moves = legalMovesForPlayer(currentPlayer().id, state.diceValue);
   if (moves.length === 0) return;
   window.setTimeout(() => moveToken(chooseAiToken(moves)), 260);
+}
+
+function buildConfetti() {
+  confettiLayer.innerHTML = "";
+  const confettiColors = [COLORS.red, COLORS.green, COLORS.yellow, COLORS.blue, "#ffffff"];
+  for (let index = 0; index < 24; index += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = confettiColors[index % confettiColors.length];
+    piece.style.animationDuration = `${3 + Math.random() * 2}s`;
+    piece.style.animationDelay = `${Math.random() * 0.4}s`;
+    confettiLayer.appendChild(piece);
+  }
+  if (state.confettiTimer) window.clearTimeout(state.confettiTimer);
+  state.confettiTimer = window.setTimeout(() => {
+    confettiLayer.innerHTML = "";
+  }, 5200);
+}
+
+function showWinnerOverlay() {
+  const firstPlace = state.placements[0] ? getPlayer(state.placements[0].playerId) : getPlayer("red");
+  winnerTitle.textContent = firstPlace.isHuman ? "Boss wins the match" : `${firstPlace.name} AI wins the match`;
+  winnerSubtitle.textContent = state.mode === "duel"
+    ? "Final ranking for the 2-player match."
+    : "Final ranking for the full 4-player match.";
+  winnerRanking.innerHTML = "";
+  state.placements.forEach((entry) => {
+    const player = getPlayer(entry.playerId);
+    const row = document.createElement("div");
+    row.className = "winner-row";
+    row.innerHTML = `<strong>${entry.place}. ${player.name}${player.isHuman ? " (Boss)" : " AI"}</strong><span>All four tokens reached home.</span>`;
+    winnerRanking.appendChild(row);
+  });
+  winnerScreen.classList.remove("hidden");
+  buildConfetti();
+  playSound("win");
+}
+
+function hideWinnerOverlay() {
+  winnerScreen.classList.add("hidden");
+  winnerRanking.innerHTML = "";
+  confettiLayer.innerHTML = "";
 }
 function draw() {
   drawBoard();
@@ -670,7 +829,7 @@ function drawCenterTriangles() {
 }
 
 function drawMoveHints() {
-  if (!currentPlayer().isHuman || state.diceValue === null || state.animating) return;
+  if (!state.started || !currentPlayer().isHuman || state.diceValue === null || state.animating) return;
   legalMovesForPlayer(currentPlayer().id, state.diceValue).forEach((token) => {
     const pixel = tokenPixel(token);
     ctx.strokeStyle = "rgba(31, 75, 58, 0.9)";
@@ -745,13 +904,13 @@ function hitTestToken(event) {
 }
 
 function onCanvasClick(event) {
-  if (!currentPlayer().isHuman || state.animating || state.diceValue === null) return;
+  if (!state.started || !currentPlayer().isHuman || state.animating || state.diceValue === null) return;
   const token = hitTestToken(event);
   if (token) moveToken(token);
 }
 
 function onCanvasMove(event) {
-  if (!currentPlayer().isHuman || state.animating || state.diceValue === null) {
+  if (!state.started || !currentPlayer().isHuman || state.animating || state.diceValue === null) {
     state.hoverTokenId = null;
     canvas.style.cursor = "default";
     draw();
@@ -837,8 +996,51 @@ function lightenColor(hex, amount) {
   return `rgb(${adjust((num >> 16) & 255)}, ${adjust((num >> 8) & 255)}, ${adjust(num & 255)})`;
 }
 
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.mode = button.dataset.mode;
+    updateModeButtons();
+    state.started = false;
+    resetGame();
+    setMessage(`Boss, ${state.mode === "duel" ? "Red vs Yellow AI" : "Red vs 3 AI players"} is selected.`);
+    setTurnHint("Press Play Now to start the game.");
+  });
+});
+
+startButton.addEventListener("click", () => {
+  state.started = true;
+  startScreen.classList.add("hidden");
+  hideWinnerOverlay();
+  ensureAudio();
+  resetGame();
+});
+
+playAgainButton.addEventListener("click", () => {
+  hideWinnerOverlay();
+  state.started = true;
+  resetGame();
+});
+
+closeWinnerButton.addEventListener("click", () => {
+  hideWinnerOverlay();
+  state.started = false;
+  startScreen.classList.remove("hidden");
+  updateButtons();
+});
+
+soundToggle.addEventListener("click", () => {
+  state.soundEnabled = !state.soundEnabled;
+  soundToggle.textContent = state.soundEnabled ? "Sound On" : "Sound Off";
+  if (state.soundEnabled) ensureAudio();
+});
+
 rollButton.addEventListener("click", rollDice);
-restartButton.addEventListener("click", resetGame);
+restartButton.addEventListener("click", () => {
+  hideWinnerOverlay();
+  state.started = false;
+  startScreen.classList.remove("hidden");
+  resetGame();
+});
 canvas.addEventListener("click", onCanvasClick);
 canvas.addEventListener("mousemove", onCanvasMove);
 canvas.addEventListener("mouseleave", () => {
@@ -847,4 +1049,6 @@ canvas.addEventListener("mouseleave", () => {
   draw();
 });
 
+updateModeButtons();
 resetGame();
+startScreen.classList.remove("hidden");
