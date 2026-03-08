@@ -3,49 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ludo Game Clone</title>
+  <title>Royal Ludo</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app">
-    <section class="panel">
-      <div class="title-wrap">
-        <p class="eyebrow">Browser Game</p>
-        <h1>Ludo Clone</h1>
+  <main class="app-shell">
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Classic Board Race</p>
+        <h1>Royal Ludo</h1>
         <p class="intro">
-          Play as Red against three computer players. Roll the dice, click your token,
-          and race all four pieces home.
+          A stronger browser version of Ludo with a richer board, smoother token movement,
+          real dice pips, and smarter game feedback. You play as Red.
         </p>
       </div>
 
-      <div class="status-card">
-        <p class="label">Current Turn</p>
-        <p id="turnLabel" class="turn-name">Red</p>
+      <div class="control-grid">
+        <article class="info-card turn-card">
+          <p class="card-label">Current Turn</p>
+          <div class="turn-line">
+            <span id="turnDot" class="turn-dot"></span>
+            <span id="turnLabel" class="turn-name">Red</span>
+          </div>
+          <p id="turnHint" class="card-note">Roll the dice to begin.</p>
+        </article>
+
+        <article class="info-card dice-card">
+          <div class="dice-head">
+            <div>
+              <p class="card-label">Dice</p>
+              <p id="diceValueLabel" class="dice-number">0</p>
+            </div>
+            <div id="diceFace" class="dice-face" aria-label="Dice face">
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="rollButton" class="primary-button">Roll Dice</button>
+            <button id="restartButton" class="secondary-button">New Match</button>
+          </div>
+        </article>
       </div>
 
-      <div class="dice-card">
-        <p class="label">Dice</p>
-        <div id="diceFace" class="dice-face">-</div>
-        <button id="rollButton" class="primary-button">Roll Dice</button>
-      </div>
+      <article class="info-card players-card">
+        <div class="section-head">
+          <p class="card-label">Players</p>
+          <p class="section-note">Home count updates live</p>
+        </div>
+        <div id="playerStats" class="player-stats"></div>
+      </article>
 
-      <div class="help-card">
-        <p class="label">How To Play</p>
-        <ul>
-          <li>You need a <strong>6</strong> to bring a token out.</li>
-          <li>If you roll a <strong>6</strong>, you get another turn.</li>
-          <li>Landing on an enemy sends it back to base unless the square is safe.</li>
-          <li>You must roll the exact number to reach the center.</li>
-        </ul>
-      </div>
+      <article class="info-card ranking-card">
+        <div class="section-head">
+          <p class="card-label">Ranking</p>
+          <p class="section-note">Live finishing order</p>
+        </div>
+        <div id="rankingList" class="ranking-list"></div>
+      </article>
 
-      <div id="messageBox" class="message-box">Press Roll Dice to start.</div>
-
-      <button id="restartButton" class="secondary-button">Restart Game</button>
+      <article class="info-card message-card">
+        <div class="section-head">
+          <p class="card-label">Match Feed</p>
+          <p class="section-note">Live game guidance</p>
+        </div>
+        <p id="messageBox" class="message-box">Boss, press Roll Dice to start.</p>
+        <div id="historyList" class="history-list"></div>
+      </article>
     </section>
 
-    <section class="board-wrap">
-      <canvas id="boardCanvas" width="720" height="720" aria-label="Ludo game board"></canvas>
+    <section class="board-panel">
+      <div class="board-header">
+        <div>
+          <p class="eyebrow">Classic Match</p>
+          <h2>Mobile Ludo Style</h2>
+        </div>
+        <p class="board-note">Click a highlighted Red token when it is your turn.</p>
+      </div>
+      <div class="canvas-frame">
+        <div id="seatGreen" class="seat seat-top seat-green seat-idle">Idle</div>
+        <div id="seatYellow" class="seat seat-right seat-yellow">Yellow AI</div>
+        <div id="seatBlue" class="seat seat-bottom seat-blue seat-idle">Idle</div>
+        <div class="seat seat-left seat-red">Boss</div>
+        <canvas id="boardCanvas" width="780" height="780" aria-label="Ludo game board"></canvas>
+      </div>
     </section>
   </main>
 
